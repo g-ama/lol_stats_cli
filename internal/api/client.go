@@ -47,6 +47,31 @@ func QueryAccount(username string, tagline string, apiKey string) (model.Account
 	return account, nil
 }
 
+func QueryGoMatch(matchID string, apiKey string, channel chan model.Match) {
+
+	response, err := http.Get(apiBaseMatchURL + matchID + apiPrefix + apiKey)
+
+	if response.StatusCode != http.StatusOK || err != nil {
+		fmt.Printf("bad request for match query: %d", response.StatusCode)
+		panic("status code issues")
+	}
+
+	responseBody, err := io.ReadAll(response.Body)
+
+	if err != nil {
+		panic("io issues")
+	}
+
+	match := model.Match{}
+
+	if err := json.Unmarshal(responseBody, &match); err != nil {
+		panic("marshaling issue")
+	}
+
+	channel <- match
+
+}
+
 func QueryMatch(matchID string, apiKey string) (model.Match, error) {
 
 	response, err := http.Get(apiBaseMatchURL + matchID + apiPrefix + apiKey)
@@ -105,13 +130,15 @@ func QueryMatches(puuid string, apiKey string) ([]model.Match, error) {
 
 	matches := []model.Match{}
 
+	channel := make(chan model.Match)
+
 	for _, i := range matchIDs {
-		match, err := QueryMatch(i, apiKey)
+		go QueryGoMatch(i, apiKey, channel)
 
-		if err != nil {
-			return []model.Match{}, fmt.Errorf("unable to request match")
-		}
+	}
 
+	for range matchIDs {
+		match := <-channel
 		matches = append(matches, match)
 	}
 

@@ -69,7 +69,7 @@ var statsCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		if game > 0 {
+		if game > 1 {
 			printer.PrintParticipantStats(performances[game])
 		} else {
 			printer.PrintPerformanceChart(performances)
